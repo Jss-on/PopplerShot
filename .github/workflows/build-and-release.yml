@@ -60,26 +60,18 @@ jobs:
           ninja-build \
           pkg-config \
           libpoppler-cpp-dev \
+          mingw-w64 \
+          mingw-w64-tools \
           curl \
           zip \
           unzip \
           tar
 
-    - name: Setup vcpkg (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        git clone https://github.com/Microsoft/vcpkg.git vcpkg
-        cd vcpkg
-        ./bootstrap-vcpkg.sh
-        echo "VCPKG_ROOT=$PWD" >> $GITHUB_ENV
-
-    - name: Setup vcpkg (Windows)
+    - name: Install Windows dependencies
       if: matrix.os == 'windows-latest'
       run: |
-        git clone https://github.com/Microsoft/vcpkg.git vcpkg
-        cd vcpkg
-        .\bootstrap-vcpkg.bat
-        echo "VCPKG_ROOT=$pwd" >> $env:GITHUB_ENV
+        # Windows runner already has CMake, MSVC, etc.
+        echo "Windows dependencies already available"
 
     - name: Cache vcpkg packages
       uses: actions/cache@v4
@@ -87,13 +79,9 @@ jobs:
         path: |
           vcpkg/installed
           vcpkg/buildtrees
-        key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}
+        key: ${{ runner.os }}-${{ matrix.triplet }}-vcpkg-${{ hashFiles('vcpkg.json') }}
         restore-keys: |
-          ${{ runner.os }}-vcpkg-
-
-    - name: Install vcpkg dependencies
-      run: |
-        ${{ env.VCPKG_ROOT }}/vcpkg install --triplet=${{ matrix.triplet }}
+          ${{ runner.os }}-${{ matrix.triplet }}-vcpkg-
 
     - name: Update version in CMakeLists.txt
       shell: bash
@@ -101,31 +89,53 @@ jobs:
         sed -i 's/VERSION [0-9]\+\.[0-9]\+\.[0-9]\+/VERSION ${{ steps.version.outputs.VERSION }}/g' CMakeLists.txt
         echo "Updated CMakeLists.txt version to ${{ steps.version.outputs.VERSION }}"
 
-    - name: Configure CMake (Linux)
+    - name: Build using build.sh (Linux)
       if: matrix.os == 'ubuntu-latest'
+      shell: bash
       run: |
+        chmod +x build.sh
+        if [ "${{ matrix.triplet }}" = "x64-linux" ]; then
+          ./build.sh --release --arch x64 --target linux
+        else
+          ./build.sh --release --arch x86 --target linux
+        fi
+
+    - name: Build using CMake (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: bash
+      run: |
+        # Initialize vcpkg submodule
+        git submodule update --init --recursive
+        
+        # Bootstrap vcpkg
+        cd vcpkg
+        ./bootstrap-vcpkg.sh
+        cd ..
+        
+        # Configure and build
         cmake -B build \
           -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
-          -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake \
-          -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} \
-          -G Ninja
-
-    - name: Configure CMake (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        cmake -B build `
-          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
-          -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake `
+          -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake \
           -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
-
-    - name: Build
-      run: cmake --build build --config ${{ env.BUILD_TYPE }}
+        cmake --build build --config ${{ env.BUILD_TYPE }}
 
     - name: Create artifact directory
       shell: bash
       run: |
         mkdir -p artifacts
-        cp build/popplershot${{ matrix.executable_extension }} artifacts/
+        
+        # Find the built executable (could be in different locations based on build system)
+        if [ -f "build/popplershot${{ matrix.executable_extension }}" ]; then
+          cp build/popplershot${{ matrix.executable_extension }} artifacts/
+        elif [ -f "out/build/linux-x64/popplershot${{ matrix.executable_extension }}" ]; then
+          cp out/build/linux-x64/popplershot${{ matrix.executable_extension }} artifacts/
+        elif [ -f "out/build/linux-x86/popplershot${{ matrix.executable_extension }}" ]; then
+          cp out/build/linux-x86/popplershot${{ matrix.executable_extension }} artifacts/
+        else
+          echo "Error: Could not find popplershot executable"
+          find . -name "popplershot*" -type f
+          exit 1
+        fi
         
         # Create version info file
         echo "PopplerShot ${{ steps.version.outputs.VERSION }}" > artifacts/VERSION.txt
