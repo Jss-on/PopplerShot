@@ -20,11 +20,6 @@ jobs:
             triplet: x64-linux
             artifact_name: popplershot-linux
             executable_extension: ""
-          - os: windows-latest
-            name: Windows
-            triplet: x64-windows
-            artifact_name: popplershot-windows
-            executable_extension: ".exe"
 
     runs-on: ${{ matrix.os }}
     
@@ -67,11 +62,7 @@ jobs:
           unzip \
           tar
 
-    - name: Install Windows dependencies
-      if: matrix.os == 'windows-latest'
-      run: |
-        # Windows runner already has CMake, MSVC, etc.
-        echo "Windows dependencies already available"
+
 
     - name: Cache vcpkg packages
       uses: actions/cache@v4
@@ -109,37 +100,20 @@ jobs:
           ./build.sh --release --arch x86 --target linux
         fi
 
-    - name: Build using CMake (Windows)
-      if: matrix.os == 'windows-latest'
-      shell: bash
-      run: |
-        # Initialize vcpkg submodule
-        git submodule update --init --recursive
-        
-        # Bootstrap vcpkg
-        cd vcpkg
-        ./bootstrap-vcpkg.sh
-        cd ..
-        
-        # Configure and build
-        cmake -B build \
-          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
-          -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake \
-          -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
-        cmake --build build --config ${{ env.BUILD_TYPE }}
+
 
     - name: Create artifact directory
       shell: bash
       run: |
         mkdir -p artifacts
         
-        # Find the built executable (could be in different locations based on build system)
-        if [ -f "build/popplershot${{ matrix.executable_extension }}" ]; then
-          cp build/popplershot${{ matrix.executable_extension }} artifacts/
-        elif [ -f "out/build/linux-x64/popplershot${{ matrix.executable_extension }}" ]; then
-          cp out/build/linux-x64/popplershot${{ matrix.executable_extension }} artifacts/
-        elif [ -f "out/build/linux-x86/popplershot${{ matrix.executable_extension }}" ]; then
-          cp out/build/linux-x86/popplershot${{ matrix.executable_extension }} artifacts/
+        # Find the built executable (Linux build locations)
+        if [ -f "out/build/linux-x64/popplershot" ]; then
+          cp out/build/linux-x64/popplershot artifacts/
+        elif [ -f "out/build/linux-x86/popplershot" ]; then
+          cp out/build/linux-x86/popplershot artifacts/
+        elif [ -f "build/popplershot" ]; then
+          cp build/popplershot artifacts/
         else
           echo "Error: Could not find popplershot executable"
           find . -name "popplershot*" -type f
@@ -188,13 +162,9 @@ jobs:
 
     - name: Create release archives
       run: |
-        # Create zip archives for each platform
+        # Create zip archive for Linux
         cd popplershot-linux-${{ steps.version.outputs.VERSION }}
         zip -r ../popplershot-linux-${{ steps.version.outputs.VERSION }}.zip .
-        cd ..
-        
-        cd popplershot-windows-${{ steps.version.outputs.VERSION }}
-        zip -r ../popplershot-windows-${{ steps.version.outputs.VERSION }}.zip .
         cd ..
 
     - name: Generate changelog
@@ -230,7 +200,6 @@ jobs:
           
           ### Downloads
           - **Linux**: `popplershot-linux-${{ steps.version.outputs.VERSION }}.zip`
-          - **Windows**: `popplershot-windows-${{ steps.version.outputs.VERSION }}.zip`
           
           ### Installation
           1. Download the appropriate archive for your platform
@@ -240,7 +209,6 @@ jobs:
           Built from commit: ${{ github.sha }}
         files: |
           popplershot-linux-${{ steps.version.outputs.VERSION }}.zip
-          popplershot-windows-${{ steps.version.outputs.VERSION }}.zip
         prerelease: ${{ steps.version.outputs.PRERELEASE }}
         generate_release_notes: false
       env:

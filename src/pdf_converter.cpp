@@ -7,6 +7,7 @@
 #include <future>
 #include <thread>
 #include <mutex>
+#include <semaphore>
 
 namespace popplershot {
 
@@ -50,12 +51,27 @@ PDFConverter::ConversionResult PDFConverter::convert_pdf(const std::string& pdf_
     ProgressBar progress_bar(page_count, 40, "█", "░");
     progress_bar.set_description("Converting pages");
 
-    // Use parallel processing for pages
+    // Use controlled parallel processing for pages to prevent memory exhaustion
+    // Limit concurrent page conversions to prevent OOM kills on large PDFs
+    const int max_concurrent_pages = std::min(8, std::max(2, static_cast<int>(std::thread::hardware_concurrency())));
+    std::counting_semaphore<> page_semaphore(max_concurrent_pages);
     std::vector<std::future<bool>> futures;
     std::mutex doc_mutex; // Protect document access
     
+    spdlog::info("Using {} concurrent page conversions (max memory safety)", max_concurrent_pages);
+    
     for (int i = 0; i < page_count; ++i) {
         auto future = std::async(std::launch::async, [&, i]() -> bool {
+            // Acquire semaphore before processing page (blocks if at limit)
+            page_semaphore.acquire();
+            
+            // Ensure semaphore is released even if exception occurs
+            struct SemaphoreGuard {
+                std::counting_semaphore<>& sem;
+                SemaphoreGuard(std::counting_semaphore<>& s) : sem(s) {}
+                ~SemaphoreGuard() { sem.release(); }
+            } guard(page_semaphore);
+            
             std::unique_ptr<poppler::page> page;
             {
                 std::lock_guard<std::mutex> lock(doc_mutex);
