@@ -4,7 +4,7 @@
 
 PopplerShot is a high-performance, multi-threaded command-line tool for converting PDF documents to images. Built on top of the powerful Poppler library, it provides fast and reliable batch conversion with extensive customization options.
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/your-username/PopplerShot/releases)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/Jss-on/PopplerShot/releases)
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://isocpp.org/std/the-standard)
 [![CMake](https://img.shields.io/badge/CMake-3.20%2B-green.svg)](https://cmake.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
