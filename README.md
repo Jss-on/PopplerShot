@@ -69,6 +69,79 @@ git submodule update --init --recursive
 ./build.sh --target windows --arch x64 --release
 ```
 
+## 🚀 Automated Builds & Releases
+
+PopplerShot features a fully automated CI/CD pipeline using GitHub Actions that builds for multiple platforms and creates releases automatically.
+
+### 🔄 **Continuous Integration**
+
+Every push to the main branch triggers automated builds for:
+- **Linux (x64)** - Ubuntu latest with native dependencies
+- **Windows (x64)** - Latest Windows with vcpkg dependencies
+
+### 📦 **Automatic Releases**
+
+The CI/CD pipeline automatically creates releases with downloadable binaries:
+
+#### **Development Releases**
+- **Trigger**: Every push to `main`/`master` branch  
+- **Version Format**: `dev-{git-hash}-{date}` (e.g., `dev-a1b2c3d4-20240312`)
+- **Type**: Pre-release
+- **Downloads**: Platform-specific zip archives with executables
+
+#### **Stable Releases** 
+- **Trigger**: Push a git tag (e.g., `v1.0.0`)
+- **Version Format**: Uses the tag name (e.g., `v1.0.0`)  
+- **Type**: Full release
+- **Downloads**: Platform-specific zip archives with executables
+
+### 🏷️ **Creating a Release**
+
+To create a new stable release:
+
+```bash
+# Tag the current commit
+git tag v1.2.0
+git push origin v1.2.0
+
+# The CI will automatically:
+# 1. Build for Linux and Windows
+# 2. Create release archives  
+# 3. Generate changelog from commits
+# 4. Upload artifacts to GitHub Releases
+```
+
+### 📥 **Download Pre-built Binaries**
+
+Get the latest builds from the [Releases page](../../releases):
+
+1. **Latest Development Build** - Most recent features (may be unstable)
+2. **Latest Stable Release** - Recommended for production use
+
+Each release includes:
+- `popplershot-linux-{version}.zip` - Linux x64 executable
+- `popplershot-windows-{version}.zip` - Windows x64 executable  
+- `VERSION.txt` - Build information and metadata
+
+### 🔧 **CI/CD Pipeline Features**
+
+- **Multi-platform Matrix Builds** - Parallel Windows and Linux builds
+- **Dependency Caching** - vcpkg packages cached for faster builds
+- **Automatic Versioning** - Semantic version injection into binaries
+- **Smart Changelog Generation** - Auto-generated from git commit history
+- **Artifact Management** - Build outputs stored as GitHub releases
+- **Quality Gates** - Build must pass before release creation
+
+### 🛠️ **Pipeline Configuration**
+
+The pipeline is defined in `.github/workflows/build-and-release.yml` and includes:
+
+- **Build Matrix**: Ubuntu + Windows runners  
+- **Dependency Management**: vcpkg integration with caching
+- **Version Strategy**: Tag-based releases + commit-based dev builds
+- **Artifact Handling**: Zip archives with version metadata
+- **Release Automation**: GitHub Releases with changelog generation
+
 ## Usage
 
 ### Command Line Interface
