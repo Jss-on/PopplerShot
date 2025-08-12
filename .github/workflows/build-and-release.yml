@@ -1,0 +1,228 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ dummy ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ dummy ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: Linux
+            triplet: x64-linux
+            artifact_name: popplershot-linux
+            executable_extension: ""
+          - os: windows-latest
+            name: Windows
+            triplet: x64-windows
+            artifact_name: popplershot-windows
+            executable_extension: ".exe"
+
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0  # Fetch all history for proper versioning
+
+    - name: Get version
+      id: version
+      shell: bash
+      run: |
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          # Tagged release - use tag as version
+          VERSION=${GITHUB_REF#refs/tags/}
+        else
+          # Development build - use commit hash and date
+          VERSION=$(git describe --always --dirty --abbrev=8)
+          VERSION="dev-${VERSION}-$(date +'%Y%m%d')"
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "Building version: $VERSION"
+
+    - name: Install Linux dependencies
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          ninja-build \
+          pkg-config \
+          libpoppler-cpp-dev \
+          curl \
+          zip \
+          unzip \
+          tar
+
+    - name: Setup vcpkg (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        git clone https://github.com/Microsoft/vcpkg.git vcpkg
+        cd vcpkg
+        ./bootstrap-vcpkg.sh
+        echo "VCPKG_ROOT=$PWD" >> $GITHUB_ENV
+
+    - name: Setup vcpkg (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        git clone https://github.com/Microsoft/vcpkg.git vcpkg
+        cd vcpkg
+        .\bootstrap-vcpkg.bat
+        echo "VCPKG_ROOT=$pwd" >> $env:GITHUB_ENV
+
+    - name: Cache vcpkg packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          vcpkg/installed
+          vcpkg/buildtrees
+        key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}
+        restore-keys: |
+          ${{ runner.os }}-vcpkg-
+
+    - name: Install vcpkg dependencies
+      run: |
+        ${{ env.VCPKG_ROOT }}/vcpkg install --triplet=${{ matrix.triplet }}
+
+    - name: Update version in CMakeLists.txt
+      shell: bash
+      run: |
+        sed -i 's/VERSION [0-9]\+\.[0-9]\+\.[0-9]\+/VERSION ${{ steps.version.outputs.VERSION }}/g' CMakeLists.txt
+        echo "Updated CMakeLists.txt version to ${{ steps.version.outputs.VERSION }}"
+
+    - name: Configure CMake (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake \
+          -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }} \
+          -G Ninja
+
+    - name: Configure CMake (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cmake -B build `
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
+          -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_ROOT }}/scripts/buildsystems/vcpkg.cmake `
+          -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
+
+    - name: Build
+      run: cmake --build build --config ${{ env.BUILD_TYPE }}
+
+    - name: Create artifact directory
+      shell: bash
+      run: |
+        mkdir -p artifacts
+        cp build/popplershot${{ matrix.executable_extension }} artifacts/
+        
+        # Create version info file
+        echo "PopplerShot ${{ steps.version.outputs.VERSION }}" > artifacts/VERSION.txt
+        echo "Built on: $(date)" >> artifacts/VERSION.txt
+        echo "Platform: ${{ matrix.name }}" >> artifacts/VERSION.txt
+        echo "Commit: ${{ github.sha }}" >> artifacts/VERSION.txt
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.artifact_name }}-${{ steps.version.outputs.VERSION }}
+        path: artifacts/
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/'))
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Get version
+      id: version
+      run: |
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/}
+          PRERELEASE=false
+        else
+          VERSION=$(git describe --always --dirty --abbrev=8)
+          VERSION="dev-${VERSION}-$(date +'%Y%m%d')"
+          PRERELEASE=true
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "PRERELEASE=$PRERELEASE" >> $GITHUB_OUTPUT
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+
+    - name: Create release archives
+      run: |
+        # Create zip archives for each platform
+        cd popplershot-linux-${{ steps.version.outputs.VERSION }}
+        zip -r ../popplershot-linux-${{ steps.version.outputs.VERSION }}.zip .
+        cd ..
+        
+        cd popplershot-windows-${{ steps.version.outputs.VERSION }}
+        zip -r ../popplershot-windows-${{ steps.version.outputs.VERSION }}.zip .
+        cd ..
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          # For tagged releases, get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$LAST_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" $LAST_TAG..HEAD)
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" -10)
+          fi
+        else
+          # For dev releases, get last 10 commits
+          CHANGELOG=$(git log --pretty=format:"- %s (%h)" -10)
+        fi
+        
+        echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.version.outputs.VERSION }}
+        name: PopplerShot ${{ steps.version.outputs.VERSION }}
+        body: |
+          ## PopplerShot ${{ steps.version.outputs.VERSION }}
+          
+          ### Changes
+          ${{ steps.changelog.outputs.CHANGELOG }}
+          
+          ### Downloads
+          - **Linux**: `popplershot-linux-${{ steps.version.outputs.VERSION }}.zip`
+          - **Windows**: `popplershot-windows-${{ steps.version.outputs.VERSION }}.zip`
+          
+          ### Installation
+          1. Download the appropriate archive for your platform
+          2. Extract the archive
+          3. Run `popplershot` from the command line
+          
+          Built from commit: ${{ github.sha }}
+        files: |
+          popplershot-linux-${{ steps.version.outputs.VERSION }}.zip
+          popplershot-windows-${{ steps.version.outputs.VERSION }}.zip
+        prerelease: ${{ steps.version.outputs.PRERELEASE }}
+        generate_release_notes: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
