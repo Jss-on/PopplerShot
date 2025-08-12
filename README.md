@@ -1,8 +1,13 @@
 # PopplerShot
 
-**Efficient batch PDF to PNG converter using libpoppler-cpp**
+**Batch PDF document to image converter**
 
 PopplerShot is a high-performance, multi-threaded command-line tool for converting PDF documents to images. Built on top of the powerful Poppler library, it provides fast and reliable batch conversion with extensive customization options.
+
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/your-username/PopplerShot/releases)
+[![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://isocpp.org/std/the-standard)
+[![CMake](https://img.shields.io/badge/CMake-3.20%2B-green.svg)](https://cmake.org/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Features
 
@@ -308,11 +313,22 @@ Each configure preset supports multiple build types:
 
 ## License
 
-[Insert your license information here]
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Developer
+
+**Jession Diwangan** - *Main Developer*  
+📧 Email: jessiondiwangan@gmail.com
 
 ## Support
 
-For issues, questions, or contributions, please [insert contact/issue information here].
+For issues, questions, or contributions, please contact:
+- **Email**: jessiondiwangan@gmail.com
+- **Issues**: Create an issue in this repository
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request or reach out with suggestions and improvements.
 
 ---
 
