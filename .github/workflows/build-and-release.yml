@@ -7,6 +7,12 @@ on:
   pull_request:
     branches: [ master ]
 
+permissions:
+  contents: write
+  actions: read
+  checks: write
+  pull-requests: read
+
 env:
   BUILD_TYPE: Release
 
