@@ -47,7 +47,7 @@ PDFConverter::ConversionResult PDFConverter::convert_pdf(const std::string& pdf_
     std::filesystem::create_directories(output_dir);
 
     // Create progress bar for page conversion
-    ProgressBar progress_bar(page_count, 40, '█', '░');
+    ProgressBar progress_bar(page_count, 40, "█", "░");
     progress_bar.set_description("Converting pages");
 
     // Use parallel processing for pages
