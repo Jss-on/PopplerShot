@@ -53,7 +53,7 @@ sudo apt install mingw-w64 mingw-w64-tools
 #### Building from Source
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/Jss-on/PopplerShot.git
 cd PopplerShot
 
 # Initialize vcpkg submodule

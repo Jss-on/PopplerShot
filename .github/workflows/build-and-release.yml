@@ -86,8 +86,17 @@ jobs:
     - name: Update version in CMakeLists.txt
       shell: bash
       run: |
-        sed -i 's/VERSION [0-9]\+\.[0-9]\+\.[0-9]\+/VERSION ${{ steps.version.outputs.VERSION }}/g' CMakeLists.txt
-        echo "Updated CMakeLists.txt version to ${{ steps.version.outputs.VERSION }}"
+        # Strip 'v' prefix from version if present (CMake expects semantic version without 'v')
+        CMAKE_VERSION="${{ steps.version.outputs.VERSION }}"
+        CMAKE_VERSION="${CMAKE_VERSION#v}"  # Remove 'v' prefix if present
+        
+        # Only update if it's a proper semantic version (x.y.z format)
+        if [[ $CMAKE_VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          sed -i "s/VERSION [0-9]\+\.[0-9]\+\.[0-9]\+/VERSION $CMAKE_VERSION/g" CMakeLists.txt
+          echo "Updated CMakeLists.txt version to $CMAKE_VERSION"
+        else
+          echo "Version '$CMAKE_VERSION' is not semantic version format, keeping original version in CMakeLists.txt"
+        fi
 
     - name: Build using build.sh (Linux)
       if: matrix.os == 'ubuntu-latest'
