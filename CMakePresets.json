@@ -1,0 +1,207 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "linux-x64",
+            "displayName": "Linux x64",
+            "description": "Linux x64 configuration using vcpkg",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/build/linux-x64",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+                "VCPKG_TARGET_TRIPLET": "x64-linux",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+        {
+            "name": "linux-x86",
+            "displayName": "Linux x86",
+            "description": "Linux x86 configuration using vcpkg",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/build/linux-x86",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+                "VCPKG_TARGET_TRIPLET": "x86-linux",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+                "CMAKE_C_FLAGS": "-m32",
+                "CMAKE_CXX_FLAGS": "-m32"
+            }
+        },
+        {
+            "name": "windows-x64",
+            "displayName": "Windows x64 (MinGW)",
+            "description": "Windows x64 cross-compilation using MinGW and vcpkg",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/build/windows-x64",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+                "VCPKG_TARGET_TRIPLET": "x64-mingw-static",
+                "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/cmake/mingw-w64-x86_64.cmake",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "name": "windows-x86",
+            "displayName": "Windows x86 (MinGW)",
+            "description": "Windows x86 cross-compilation using MinGW and vcpkg",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/build/windows-x86",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+                "VCPKG_TARGET_TRIPLET": "x86-mingw-static",
+                "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/cmake/mingw-w64-i686.cmake",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "linux-x64-debug",
+            "displayName": "Linux x64 Debug",
+            "configurePreset": "linux-x64",
+            "configuration": "Debug"
+        },
+        {
+            "name": "linux-x64-release",
+            "displayName": "Linux x64 Release",
+            "configurePreset": "linux-x64",
+            "configuration": "Release"
+        },
+        {
+            "name": "linux-x64-relwithdebinfo",
+            "displayName": "Linux x64 RelWithDebInfo",
+            "configurePreset": "linux-x64",
+            "configuration": "RelWithDebInfo"
+        },
+        {
+            "name": "linux-x64-minsizerel",
+            "displayName": "Linux x64 MinSizeRel",
+            "configurePreset": "linux-x64",
+            "configuration": "MinSizeRel"
+        },
+        {
+            "name": "linux-x86-debug",
+            "displayName": "Linux x86 Debug",
+            "configurePreset": "linux-x86",
+            "configuration": "Debug"
+        },
+        {
+            "name": "linux-x86-release",
+            "displayName": "Linux x86 Release",
+            "configurePreset": "linux-x86",
+            "configuration": "Release"
+        },
+        {
+            "name": "linux-x86-relwithdebinfo",
+            "displayName": "Linux x86 RelWithDebInfo",
+            "configurePreset": "linux-x86",
+            "configuration": "RelWithDebInfo"
+        },
+        {
+            "name": "linux-x86-minsizerel",
+            "displayName": "Linux x86 MinSizeRel",
+            "configurePreset": "linux-x86",
+            "configuration": "MinSizeRel"
+        },
+        {
+            "name": "windows-x64-debug",
+            "displayName": "Windows x64 Debug",
+            "configurePreset": "windows-x64",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-x64-release",
+            "displayName": "Windows x64 Release",
+            "configurePreset": "windows-x64",
+            "configuration": "Release"
+        },
+        {
+            "name": "windows-x64-relwithdebinfo",
+            "displayName": "Windows x64 RelWithDebInfo",
+            "configurePreset": "windows-x64",
+            "configuration": "RelWithDebInfo"
+        },
+        {
+            "name": "windows-x64-minsizerel",
+            "displayName": "Windows x64 MinSizeRel",
+            "configurePreset": "windows-x64",
+            "configuration": "MinSizeRel"
+        },
+        {
+            "name": "windows-x86-debug",
+            "displayName": "Windows x86 Debug",
+            "configurePreset": "windows-x86",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-x86-release",
+            "displayName": "Windows x86 Release",
+            "configurePreset": "windows-x86",
+            "configuration": "Release"
+        },
+        {
+            "name": "windows-x86-relwithdebinfo",
+            "displayName": "Windows x86 RelWithDebInfo",
+            "configurePreset": "windows-x86",
+            "configuration": "RelWithDebInfo"
+        },
+        {
+            "name": "windows-x86-minsizerel",
+            "displayName": "Windows x86 MinSizeRel",
+            "configurePreset": "windows-x86",
+            "configuration": "MinSizeRel"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "linux-x64-debug",
+            "configurePreset": "linux-x64",
+            "configuration": "Debug"
+        },
+        {
+            "name": "linux-x64-release",
+            "configurePreset": "linux-x64",
+            "configuration": "Release"
+        },
+        {
+            "name": "linux-x86-debug",
+            "configurePreset": "linux-x86",
+            "configuration": "Debug"
+        },
+        {
+            "name": "linux-x86-release",
+            "configurePreset": "linux-x86",
+            "configuration": "Release"
+        },
+        {
+            "name": "windows-x64-debug",
+            "configurePreset": "windows-x64",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-x64-release",
+            "configurePreset": "windows-x64",
+            "configuration": "Release"
+        },
+        {
+            "name": "windows-x86-debug",
+            "configurePreset": "windows-x86",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-x86-release",
+            "configurePreset": "windows-x86",
+            "configuration": "Release"
+        }
+    ]
+}
