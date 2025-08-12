@@ -82,7 +82,7 @@ jobs:
         echo "VCPKG_ROOT=$pwd" >> $env:GITHUB_ENV
 
     - name: Cache vcpkg packages
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           vcpkg/installed
@@ -134,7 +134,7 @@ jobs:
         echo "Commit: ${{ github.sha }}" >> artifacts/VERSION.txt
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact_name }}-${{ steps.version.outputs.VERSION }}
         path: artifacts/
@@ -165,7 +165,7 @@ jobs:
         echo "PRERELEASE=$PRERELEASE" >> $GITHUB_OUTPUT
 
     - name: Download all artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
 
     - name: Create release archives
       run: |
